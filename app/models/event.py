@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from app import db
+from app.extensions import db
 
 
 class Event(db.Model):
@@ -19,4 +19,4 @@ class Event(db.Model):
     is_deleted = db.Column(db.Boolean, default=False, nullable=False)
 
     # Category relationship
-    category = db.relationship('Category', backref='events', lazy=True)
+    category = db.relationship('Category', backref='events_list', lazy=True)

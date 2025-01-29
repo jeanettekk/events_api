@@ -1,4 +1,4 @@
-from app import db
+from app.extensions import db
 
 
 class Category(db.Model):
@@ -7,4 +7,4 @@ class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)
     description = db.Column(db.String(150), unique=True, nullable=False)
-    events = db.relationship('Event', backref='category', lazy=True)
+    events = db.relationship('Event', backref='category_ref', lazy=True)
