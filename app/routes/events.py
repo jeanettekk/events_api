@@ -1,8 +1,18 @@
 from flask import Blueprint, request, jsonify
 
-from services.event_service import create_event, get_event_by_uuid
+from services.event_service import create_event, get_event_by_uuid, get_all_events
 
 event_bp = Blueprint("event_bp", __name__)
+
+
+@event_bp.route("/events", methods=["GET"])
+def get_events():
+    events_list = get_all_events()
+
+    if not events_list:
+        return jsonify({"Error": "There are no events"}), 404
+
+    return jsonify(events_list), 200
 
 
 @event_bp.route("/event/<uuid>", methods=["GET"])
