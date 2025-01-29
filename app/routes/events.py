@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 
-from services.event_service import create_event, get_event_by_uuid, get_all_events
+from services.event_service import create_event, get_event_by_uuid, get_all_events, delete_event_by_uuid
 
 event_bp = Blueprint("event_bp", __name__)
 
@@ -20,7 +20,7 @@ def get_event_by_uuid_route(uuid):
     event_data = get_event_by_uuid(uuid)
 
     if not event_data:
-        return jsonify({"Error": "Event not found"}), 404
+        return jsonify({"Error": "Event does not exist"}), 404
 
     return jsonify(event_data), 200
 
@@ -56,3 +56,16 @@ def create_event_route():
         "notification_sent": new_event.notification_sent,
         "is_deleted": new_event.is_deleted
     }), 201
+
+
+@event_bp.route("/delete-event/<uuid>", methods=["DELETE"])
+def delete_event(uuid):
+    event = delete_event_by_uuid(uuid)
+
+    if event is None:
+        return jsonify({"Error": "Event does not exist"}), 404
+
+    if event == "already_deleted":
+        return jsonify({"Error": "Event already deleted"}), 422
+
+    return jsonify({"message": "Event deleted successfully"}), 204

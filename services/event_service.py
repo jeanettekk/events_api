@@ -78,3 +78,19 @@ def create_event(category_id, device_uuid, recorded_at, metadata=None):
     db.session.commit()
 
     return new_event
+
+
+def delete_event_by_uuid(uuid):
+    event = Event.query.filter_by(uuid=uuid).first()
+
+    if not event:
+        return None
+
+    if event.is_deleted:
+        return "already_deleted"
+
+    event.is_deleted = True
+
+    db.session.commit()
+
+    return event
