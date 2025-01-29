@@ -1,6 +1,8 @@
 from flask import Blueprint, request, jsonify
 
-from services.event_service import create_event, get_event_by_uuid, get_all_events, delete_event_by_uuid
+from services.event_service import create_event, get_all_events, delete_event_by_uuid, \
+    update_notification_sent, validate_metadata, get_event_by_uuid
+from utils.validations import validate_category_exists
 
 event_bp = Blueprint("event_bp", __name__)
 
@@ -17,12 +19,28 @@ def get_events():
 
 @event_bp.route("/event/<uuid>", methods=["GET"])
 def get_event_by_uuid_route(uuid):
-    event_data = get_event_by_uuid(uuid)
+    try:
+        event = get_event_by_uuid(uuid)
 
-    if not event_data:
-        return jsonify({"Error": "Event does not exist"}), 404
+        if event is None:
+            return jsonify({"Error": "Event not found"}), 404
 
-    return jsonify(event_data), 200
+        return jsonify({
+            "uuid": str(event.uuid),
+            "recorded_at": event.recorded_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "received_at": event.received_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "created_at": event.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "updated_at": event.updated_at.strftime("%Y-%m-%d %H:%M:%S") if event.updated_at else None,
+            "category_id": event.category_id,
+            "device_uuid": event.device_uuid,
+            "metadata": validate_metadata(event.metadata),
+            "notification_sent": event.notification_sent,
+            "is_deleted": event.is_deleted
+        }), 200
+
+    except ValueError:
+        # Error for when the UUID is incorrect
+        return jsonify({"Error": "Incorrect UUID format"}), 400
 
 
 @event_bp.route("/create-event", methods=["POST"])
@@ -37,13 +55,14 @@ def create_event_route():
     if not category_id or not device_uuid or not recorded_at:
         return jsonify({"Error": "Missing required fields"}), 400
 
-    # Call service layer to create the event
-    new_event = create_event(category_id, device_uuid, recorded_at, data.get("metadata"))
+    # Check if the category exists
+    category_exists = validate_category_exists(category_id)
 
-    if not new_event:
+    if not category_exists:
         return jsonify({"Error": "Invalid category_id"}), 422
 
-    # Return this response
+    new_event = create_event(category_id, device_uuid, recorded_at, data.get("metadata"))
+
     return jsonify({
         "uuid": new_event.uuid,
         "recorded_at": new_event.recorded_at,
@@ -58,14 +77,49 @@ def create_event_route():
     }), 201
 
 
-@event_bp.route("/delete-event/<uuid>", methods=["DELETE"])
-def delete_event(uuid):
-    event = delete_event_by_uuid(uuid)
+@event_bp.route("/update-event/<uuid>", methods=["PUT", "PATCH"])
+def update_event(uuid):
+    data = request.get_json()
+
+    # Validate input
+    if "notification_sent" not in data:
+        return jsonify({"Error": "Missing 'notification_sent' flag in request body"}), 400
+
+    event = update_notification_sent(uuid)
 
     if event is None:
-        return jsonify({"Error": "Event does not exist"}), 404
+        return jsonify({"Error": "Event not found"}), 404
 
-    if event == "already_deleted":
-        return jsonify({"Error": "Event already deleted"}), 422
+    if event == 'already_true':
+        return jsonify({"Error": "notification_sent is already True"}), 422
 
-    return jsonify({"message": "Event deleted successfully"}), 204
+    return jsonify({
+        "uuid": str(event.uuid),
+        "recorded_at": event.recorded_at.strftime("%Y-%m-%d %H:%M:%S"),
+        "received_at": event.received_at.strftime("%Y-%m-%d %H:%M:%S"),
+        "created_at": event.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+        "updated_at": event.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
+        "category_id": event.category_id,
+        "category_name": event.category.name,
+        "device_uuid": event.device_uuid,
+        "metadata": validate_metadata(event.metadata),
+        "notification_sent": event.notification_sent,
+        "is_deleted": event.is_deleted
+    }), 200
+
+
+@event_bp.route("/delete-event/<uuid>", methods=["DELETE"])
+def delete_event(uuid):
+    try:
+        event = delete_event_by_uuid(uuid)
+
+        if event is None:
+            return jsonify({"Error": "Event does not exist"}), 404
+
+        if event.is_deleted:
+            return jsonify({"Error": "Event already deleted"}), 422
+
+        return jsonify({"message": "Event deleted successfully"}), 204
+
+    except Exception as e:
+        return jsonify({"Error": str(e)}), 400  # Prints the error that occurred
