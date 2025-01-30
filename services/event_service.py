@@ -29,16 +29,17 @@ def get_all_events():
 def get_event_by_uuid(uuid):
     event = Event.query.filter_by(uuid=uuid).first()
 
+    if event is None:
+        return None
+
     return event
 
 
 def create_event(category_id, device_uuid, recorded_at, metadata=None):
     new_event = Event(
-        uuid=str(uuid.uuid4()),
-        recorded_at=datetime.strptime(recorded_at, "%Y-%m-%d %H:%M:%S"),
-        received_at=datetime.now(),
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
+        uuid=str(uuid.uuid4()),  # generates a new Version 4 UUID
+        recorded_at=datetime.strptime(recorded_at, "%Y-%m-%d %H:%M:%S"),  # API request body
+        received_at=datetime.now(),  # Python function records this
         category_id=category_id,
         device_uuid=device_uuid,
         metadata=metadata or {},  # Default to empty if not provided
@@ -53,10 +54,10 @@ def create_event(category_id, device_uuid, recorded_at, metadata=None):
 
 
 def update_notification_sent(uuid):
-    event = Event.query.filter_by(uuid=uuid).first()
+    event = get_event_by_uuid(uuid)
 
-    if not event:
-        return None  # Event not found
+    if event is None:
+        return None
 
     if event.notification_sent:
         return 'already_true'  # Already True, return without updating
@@ -71,10 +72,15 @@ def update_notification_sent(uuid):
 
 
 def delete_event_by_uuid(uuid):
-    event = Event.query.filter_by(uuid=uuid).first()
+    event = get_event_by_uuid(uuid)
+
+    if event is None:
+        return None
+
+    if event.is_deleted:
+        return 'already_deleted'
 
     event.is_deleted = True
-
     db.session.commit()
 
     return event

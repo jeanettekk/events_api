@@ -74,7 +74,7 @@ def create_event_route():
         "metadata": new_event.metadata,
         "notification_sent": new_event.notification_sent,
         "is_deleted": new_event.is_deleted
-    }), 201
+    }), 200
 
 
 @event_bp.route("/update-event/<uuid>", methods=["PUT", "PATCH"])
@@ -88,9 +88,9 @@ def update_event(uuid):
     event = update_notification_sent(uuid)
 
     if event is None:
-        return jsonify({"Error": "Event not found"}), 404
+        return jsonify({"Error": "Event does not exist"}), 404
 
-    if event == 'already_true':
+    elif event == 'already_true':
         return jsonify({"Error": "notification_sent is already True"}), 422
 
     return jsonify({
@@ -111,12 +111,12 @@ def update_event(uuid):
 @event_bp.route("/delete-event/<uuid>", methods=["DELETE"])
 def delete_event(uuid):
     try:
-        event = delete_event_by_uuid(uuid)
+        event_deleted_status = delete_event_by_uuid(uuid)
 
-        if event is None:
+        if event_deleted_status is None:
             return jsonify({"Error": "Event does not exist"}), 404
 
-        if event.is_deleted:
+        elif event_deleted_status == "already_deleted":
             return jsonify({"Error": "Event already deleted"}), 422
 
         return jsonify({"message": "Event deleted successfully"}), 204
