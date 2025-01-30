@@ -10,12 +10,13 @@ def validate_metadata(metadata):
         return {}
 
 
-def validate_category_exists(category_id):
-    category = Category.query.get(category_id)
+def validate_category_exists(data):
+    category = Category.query.filter_by(name=data.get("category")).first()
+
     if category:
-        return True
+        return category
     else:
-        False
+        return False
 
 # def validate_event_data(data):
 #     category_id = data.get("category_id")

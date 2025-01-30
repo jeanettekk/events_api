@@ -48,20 +48,20 @@ def create_event_route():
     data = request.get_json()
 
     # Validate input
-    category_id = data.get("category_id")
+    category_input = data.get("category")
     device_uuid = data.get("device_uuid")
     recorded_at = data.get("recorded_at")
 
-    if not category_id or not device_uuid or not recorded_at:
+    if not category_input or not device_uuid or not recorded_at:
         return jsonify({"Error": "Missing required fields"}), 400
 
     # Check if the category exists
-    category_exists = validate_category_exists(category_id)
+    category = validate_category_exists(data)
 
-    if not category_exists:
-        return jsonify({"Error": "Invalid category_id"}), 422
+    if not category:
+        return jsonify({"Error": "Invalid category"}), 422
 
-    new_event = create_event(category_id, device_uuid, recorded_at, data.get("metadata"))
+    new_event = create_event(category.id, device_uuid, recorded_at, data.get("metadata"))
 
     return jsonify({
         "uuid": new_event.uuid,
