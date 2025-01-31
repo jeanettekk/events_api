@@ -16,7 +16,7 @@ def get_all_events():
         "received_at": event.received_at,
         "created_at": event.created_at,
         "updated_at": event.updated_at,
-        "category_id": event.category_id,
+        "category": event.category.name if event.category else None,
         "device_uuid": event.device_uuid,
         "metadata": validate_metadata(event.metadata),
         "notification_sent": event.notification_sent,
@@ -29,27 +29,23 @@ def get_all_events():
 def get_event_by_uuid(uuid):
     event = Event.query.filter_by(uuid=uuid).first()
 
-    if event is None:
-        return None
-
     return event
 
 
-def create_event(category_id, device_uuid, recorded_at, metadata=None):
+def create_event(category_id, device_uuid, recorded_at, event_metadata):
     new_event = Event(
         uuid=str(uuid.uuid4()),  # generates a new Version 4 UUID
         recorded_at=datetime.strptime(recorded_at, "%Y-%m-%d %H:%M:%S"),  # API request body
         received_at=datetime.now(),  # Python function records this
         category_id=category_id,
         device_uuid=device_uuid,
-        metadata=metadata or {},  # Default to empty if not provided
+        event_metadata=event_metadata or {},  # Default to empty if not provided
         notification_sent=False,
         is_deleted=False
     )
 
     db.session.add(new_event)
     db.session.commit()
-
     return new_event
 
 
@@ -59,8 +55,8 @@ def update_notification_sent(uuid):
     if event is None:
         return None
 
-    if event.notification_sent:
-        return 'already_true'  # Already True, return without updating
+    elif event.notification_sent:
+        return 'already_true'
 
     # Update the notification_sent flag to True
     event.notification_sent = True
