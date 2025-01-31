@@ -20,17 +20,3 @@ class Event(db.Model):
 
     # Category relationship
     category = db.relationship('Category', backref='events_list', lazy=True)
-
-    def create_dictionary(self):
-        return {
-            "uuid": self.uuid,
-            "recorded_at": self.recorded_at.strftime("%Y-%m-%d %H:%M:%S"),
-            "received_at": self.received_at.strftime("%Y-%m-%d %H:%M:%S"),
-            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S"),
-            "updated_at": self.updated_at.strftime("%Y-%m-%d %H:%M:%S") if self.updated_at else None,
-            "category": self.category.name if self.category else None,
-            "device_uuid": self.device_uuid,
-            "metadata": self.event_metadata if isinstance(self.event_metadata, dict) else {},
-            "notification_sent": self.notification_sent,
-            "is_deleted": self.is_deleted
-        }

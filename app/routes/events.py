@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify
 
 from services.event_service import create_event, get_all_events, delete_event_by_uuid, \
-    update_notification_sent, validate_metadata, get_event_by_uuid
-from utils.validations import validate_category_exists, validate_event_data, check_valid_uuid
+    update_notification_sent, get_event_by_uuid, format_response
+from utils.validations import validate_category_exists, validate_event_data, check_valid_uuid, validate_metadata
 
 event_bp = Blueprint("event_bp", __name__)
 
@@ -28,7 +28,7 @@ def get_event_by_uuid_route(uuid):
     if event is None:
         return jsonify({"Error": "Event not found"}), 404
 
-    return jsonify(event.create_dictionary()), 200
+    return jsonify(format_response(event)), 200
 
 
 @event_bp.route("/create-event", methods=["POST"])
@@ -56,25 +56,13 @@ def create_event_route():
 
     new_event = create_event(category.id, data.get("device_uuid"), data.get("recorded_at"), data.get("event_metadata"))
 
-    return jsonify({
-        "uuid": new_event.uuid,
-        "recorded_at": new_event.recorded_at,
-        "received_at": new_event.received_at,
-        "created_at": new_event.created_at,
-        "updated_at": new_event.updated_at,
-        "category_id": new_event.category_id,
-        "device_uuid": new_event.device_uuid,
-        "event_metadata": new_event.event_metadata,
-        "notification_sent": new_event.notification_sent,
-        "is_deleted": new_event.is_deleted
-    }), 200
+    return jsonify(format_response(new_event)), 200
 
 
 @event_bp.route("/update-event/<uuid>", methods=["PUT", "PATCH"])
 def update_event(uuid):
     data = request.get_json()
 
-    # Validate input
     if "notification_sent" not in data:
         return jsonify({"Error": "Missing 'notification_sent' in request body"}), 400
 
@@ -86,19 +74,7 @@ def update_event(uuid):
     elif event == 'already_true':
         return jsonify({"Error": "notification_sent is already True"}), 422
 
-    return jsonify({
-        "uuid": str(event.uuid),
-        "recorded_at": event.recorded_at.strftime("%Y-%m-%d %H:%M:%S"),
-        "received_at": event.received_at.strftime("%Y-%m-%d %H:%M:%S"),
-        "created_at": event.created_at.strftime("%Y-%m-%d %H:%M:%S"),
-        "updated_at": event.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
-        "category_id": event.category_id,
-        "category_name": event.category.name,
-        "device_uuid": event.device_uuid,
-        "metadata": validate_metadata(event.metadata),
-        "notification_sent": event.notification_sent,
-        "is_deleted": event.is_deleted
-    }), 200
+    return jsonify(format_response(event)), 200
 
 
 @event_bp.route("/delete-event/<uuid>", methods=["DELETE"])

@@ -3,27 +3,30 @@ from datetime import datetime
 
 from app.extensions import db
 from app.models.event import Event
-from utils.validations import validate_metadata
+
+
+def format_response(event):
+    return {
+        "uuid": event.uuid,
+        "recorded_at": event.recorded_at.strftime("%Y-%m-%d %H:%M:%S"),
+        "received_at": event.received_at.strftime("%Y-%m-%d %H:%M:%S"),
+        "created_at": event.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+        "updated_at": event.updated_at.strftime("%Y-%m-%d %H:%M:%S") if event.updated_at else None,
+        "category": event.category.name if event.category else None,
+        "device_uuid": event.device_uuid,
+        "metadata": event.event_metadata,
+        "notification_sent": event.notification_sent,
+        "is_deleted": event.is_deleted
+    }
 
 
 def get_all_events():
     events = Event.query.all()  # Get all events from the events table
 
-    # Converts events to a list of dictionaries to return as a JSON
-    events_list = [{
-        "uuid": str(event.uuid),
-        "recorded_at": event.recorded_at,
-        "received_at": event.received_at,
-        "created_at": event.created_at,
-        "updated_at": event.updated_at,
-        "category": event.category.name if event.category else None,
-        "device_uuid": event.device_uuid,
-        "metadata": validate_metadata(event.metadata),
-        "notification_sent": event.notification_sent,
-        "is_deleted": event.is_deleted
-    } for event in events]
+    # Maps each event to a readable dictionary format
+    formatted_events = [format_response(event) for event in events]
 
-    return events_list
+    return formatted_events
 
 
 def get_event_by_uuid(uuid):
